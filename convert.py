@@ -32,12 +32,16 @@ def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file):
                 create_statement = create_statement.replace("INTEGER PRIMARY KEY", "INT PRIMARY KEY AUTO_INCREMENT")
                 f.write(f'{create_statement};\n\n')
 
-                df = pd.read_sql_query(f'SELECT * FROM {table_name};', sqlite_conn)
-                logging.debug(f'Fetched {len(df)} records from table {table_name}.')
+                cursor.execute(f'SELECT * FROM {table_name};')
 
-                for index, row in df.iterrows():
-                    values = ', '.join([f'"{str(value)}"' if isinstance(value, str) else str(value) for value in row])
-                    f.write(f'INSERT INTO {table_name} VALUES ({values});\n')
+                while True:
+                    rows = cursor.fetchmany(5000)
+                    if not rows:
+                        break
+
+                    for row in rows:
+                        values = ', '.join([f'"{str(value)}"' if isinstance(value, str) else str(value) for value in row])
+                        f.write(f'INSERT INTO {table_name} VALUES ({values});\n')
 
                 f.write('\n')
 
