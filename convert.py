@@ -16,7 +16,7 @@ def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file):
         return
 
     try:
-        with open(output_sql_file, 'w') as f:
+        with open(output_sql_file, 'w', encoding='utf-8') as f:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             tables = cursor.fetchall()
             logging.debug(f'Tables found: {tables}')
