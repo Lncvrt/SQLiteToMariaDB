@@ -4,7 +4,7 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file, batch_size=10000):
+def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file):
     logging.debug(f'Starting conversion from SQLite database: {sqlite_db_path}')
 
     try:
@@ -32,19 +32,12 @@ def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file, batch_size=10000)
                 create_statement = create_statement.replace("INTEGER PRIMARY KEY", "INT PRIMARY KEY AUTO_INCREMENT")
                 f.write(f'{create_statement};\n\n')
 
-                offset = 0
-                while True:
-                    df = pd.read_sql_query(f'SELECT * FROM {table_name} LIMIT {batch_size} OFFSET {offset};', sqlite_conn)
-                    if df.empty:
-                        break
+                df = pd.read_sql_query(f'SELECT * FROM {table_name};', sqlite_conn)
+                logging.debug(f'Fetched {len(df)} records from table {table_name}.')
 
-                    logging.debug(f'Fetched {len(df)} records from table {table_name} (Offset: {offset}).')
-
-                    for index, row in df.iterrows():
-                        values = ', '.join([f'"{str(value)}"' if isinstance(value, str) else str(value) for value in row])
-                        f.write(f'INSERT INTO {table_name} VALUES ({values});\n')
-
-                    offset += batch_size
+                for index, row in df.iterrows():
+                    values = ', '.join([f'"{str(value)}"' if isinstance(value, str) else str(value) for value in row])
+                    f.write(f'INSERT INTO {table_name} VALUES ({values});\n')
 
                 f.write('\n')
 
@@ -56,6 +49,7 @@ def convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file, batch_size=10000)
         sqlite_conn.close()
         logging.debug('SQLite connection closed.')
 
-sqlite_db_path = 'database.db'
-output_sql_file = 'converted.sql'
-convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file)
+if __name__ == '__main__':
+    sqlite_db_path = 'database.db'
+    output_sql_file = 'converted.sql'
+    convert_sqlite_to_mariadb(sqlite_db_path, output_sql_file)
